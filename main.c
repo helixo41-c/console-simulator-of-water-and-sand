@@ -4,13 +4,14 @@
 #define _WIN32_WINNT 0x0501
 #include <windows.h>
 
-#define width 80
-#define height 24
-#define c_sand (char)176
-#define c_water (char)219
-#define c_wall '#'
+#define width 80 // Width of console
+#define height 24 // Height of console
+#define c_sand (char)176 // Sand symbol
+#define c_water (char)219 // Water symbol
+#define c_wall '#' // Wal s
 #define c_space ' '
 
+// Map Data Type
 typedef char Tmap[height][width];
 Tmap map;
 POINT mousePos;
@@ -20,20 +21,24 @@ enum {s_sand = 0, s_water, s_wall, s_last} substance = s_sand;
 char subChar[] = {c_sand, c_water, c_wall};
 char *subName[] = {"sand", "water", "wall"};
 
-
+// Return position of mouse
 POINT GetMousePos(HWND hwnd, POINT cellSize)
 {
     static POINT pt;
+    
+    // Winapi Method for getting mouse pos(global)
     GetCursorPos(&pt);
+    // Getting local mouse pos
     ScreenToClient(hwnd, &pt);
     pt.x /= cellSize.x;
     pt.y /= cellSize.y;
     return pt;
 }
 
-POINT GetSellSize(HWND hwnd)
+POINT GetCellSize(HWND hwnd)
 {
     RECT rct;
+    // Get left bottom right and top positions of console window(local)
     GetClientRect(hwnd, &rct);
     POINT sellSz;
     sellSz.x = (rct.right - rct.left) / width;
@@ -41,12 +46,14 @@ POINT GetSellSize(HWND hwnd)
     return sellSz;
 }
 
+//Clearing all map
 void ClearMap()
 {
     memset(map, c_space, sizeof(map));
     map[height - 1][width] = '\0';
 }
 
+// Set cursor pos for pretty map printing 
 void SetCurPos(int x, int y)
 {
     COORD coord;
@@ -55,12 +62,14 @@ void SetCurPos(int x, int y)
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
 }
 
+// Showing map
 void ShowMap(Tmap map)
 {
     SetCurPos(0, 0);
     printf("%s", map[0]);
 }
 
+//Show info how use this program
 void ShowInfo()
 {
     SetCurPos(0, height);
@@ -72,14 +81,17 @@ void ShowInfo()
     printf("LMB-put %s\tRMB-clear cell or SPACE for all map", subName[substance]);
 }
 
+// Selecting substance for putting it on map
 void SelectSubstance()
 {
     for(int i = 0; i < s_last; i++)
     {
+        //Getting presed key
         if(GetKeyState('1' + i) < 0) substance = i;
     }
 }
 
+//function for better line drawing
 void PutLine(POINT a, POINT b, char sub)
 {
     float dx = (b.x - a.x) / (float)width;
@@ -90,10 +102,12 @@ void PutLine(POINT a, POINT b, char sub)
     }
 }
 
+// Putting substance on map
 void PutSubstance(POINT pt)
 {
     static POINT old;
-
+    
+    // Checking put or clear cell
     if(GetKeyState(VK_LBUTTON) < 0)
     {
         PutLine(old, pt, subChar[substance]);
@@ -106,11 +120,13 @@ void PutSubstance(POINT pt)
     old = pt;
 }
 
+// check if the subsance is on the map
 char IfPointInMap(int x, int y)
 {
     return !((x < 0) || (y < 0) || (x >= width) || (y >= height));
 }
 
+// sand physics
 void MoveSand(int x, int y)
 {
     for(int i = 0; i <= 1; i+= (i == 0 ? -1 : 2))
@@ -128,6 +144,8 @@ void MoveSand(int x, int y)
     }
 }
 
+// Vars for water physics
+// Var for saving previous map
 Tmap mapTmp;
 char waterLevel;
 POINT foundPoint;
@@ -154,9 +172,10 @@ void FindWaterPath(int x, int y)
     }
 }
 
+// water physics
 void MoveWater(int x, int y)
 {
-    if(!IfPointInMap(x, y + 1)) return;
+    if(!IfPointInMap(x, y + 1)) return; // Checking point pos
     if(map[y + 1][x] == c_space)
     {
         map[y][x] = c_space;
@@ -176,6 +195,7 @@ void MoveWater(int x, int y)
     }
 }
 
+//general physics of motion
 void MoveSubstance()
 {
     for(int j = height - 1; j >= 0; j--)
@@ -190,23 +210,30 @@ void MoveSubstance()
 
 int main()
 {
+    // Getting Console Window
     HWND hwnd = GetConsoleWindow();
-    cellSize = GetSellSize(hwnd);
+    cellSize = GetCellSize(hwnd);
+    //Clearing map
     ClearMap();
+    
+    // Main loop
     do
     {
+        //Getting mouse pos
         mousePos = GetMousePos(hwnd, cellSize);
         SelectSubstance();
         PutSubstance(mousePos);
-
+        
         MoveSubstance();
 
         ShowMap(map);
         ShowInfo();
+        // Handler for cleaning all map
         if(GetKeyState(VK_SPACE) < 0)
         {
             ClearMap();
         }
+        //Timeout
         Sleep(50);
     }
     while(GetKeyState(VK_ESCAPE) >= 0);
