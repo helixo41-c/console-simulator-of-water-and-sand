@@ -153,47 +153,29 @@ POINT foundPoint;
 
 void FindWaterPath(int x, int y, bool direction)
 {
-    if(direction == true)
+    if(!IfPointInMap(x, y)) return;
+
+    if((y >= waterLevel) && (y > foundPoint.y))
     {
-        if(!IfPointInMap(x, y)) return;
-
-        if((y >= waterLevel) && (y > foundPoint.y))
+        if(mapTmp[y][x] == c_space)
         {
-            if(mapTmp[y][x] == c_space)
-            {
-                foundPoint.x = x;
-                foundPoint.y = y;
-            }
+            foundPoint.x = x;
+            foundPoint.y = y;
         }
-        if(mapTmp[y][x] == c_water)
-        {
-            mapTmp[y][x] = '#';
-            FindWaterPath(x, y - 1, direction);
-            FindWaterPath(x, y + 1, direction);
+    }
+    if(mapTmp[y][x] == c_water)
+    {
+        mapTmp[y][x] = '#';
+        FindWaterPath(x, y - 1, direction);
+        FindWaterPath(x, y + 1, direction);
 
+        if(direction == true) // Checking direction
+        {
             FindWaterPath(x - 1, y, direction);
             FindWaterPath(x + 1, y, direction);
         }
-    }
-    else
-    {
-        if(!IfPointInMap(x, y)) return;
-
-        if((y >= waterLevel) && (y > foundPoint.y))
+        else
         {
-            if(mapTmp[y][x] == c_space)
-            {
-                foundPoint.x = x;
-                foundPoint.y = y;
-            }
-        }
-        if(mapTmp[y][x] == c_water)
-        {
-            mapTmp[y][x] = '#';
-            FindWaterPath(x, y - 1, direction);
-            FindWaterPath(x, y + 1, direction);
-
-
             FindWaterPath(x + 1, y, direction);
             FindWaterPath(x - 1, y, direction);
         }
@@ -264,7 +246,7 @@ int main()
             ClearMap();
         }
 
-        water_direction = !water_direction;
+        water_direction = !water_direction; // Changing water direction
         //Timeout
         Sleep(50);
     }
@@ -272,4 +254,5 @@ int main()
 
     return 0;
 }
+
 
