@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #define _WIN32_WINNT 0x0501
 #include <windows.h>
@@ -25,7 +26,7 @@ char *subName[] = {"sand", "water", "wall"};
 POINT GetMousePos(HWND hwnd, POINT cellSize)
 {
     static POINT pt;
-    
+
     // Winapi Method for getting mouse pos(global)
     GetCursorPos(&pt);
     // Getting local mouse pos
@@ -53,7 +54,7 @@ void ClearMap()
     map[height - 1][width] = '\0';
 }
 
-// Set cursor pos for pretty map printing 
+// Set cursor pos for pretty map printing
 void SetCurPos(int x, int y)
 {
     COORD coord;
@@ -106,7 +107,7 @@ void PutLine(POINT a, POINT b, char sub)
 void PutSubstance(POINT pt)
 {
     static POINT old;
-    
+
     // Checking put or clear cell
     if(GetKeyState(VK_LBUTTON) < 0)
     {
@@ -150,30 +151,57 @@ Tmap mapTmp;
 char waterLevel;
 POINT foundPoint;
 
-void FindWaterPath(int x, int y)
+void FindWaterPath(int x, int y, bool direction)
 {
-    if(!IfPointInMap(x, y)) return;
-
-    if((y >= waterLevel) && (y > foundPoint.y))
+    if(direction == true)
     {
-        if(mapTmp[y][x] == c_space)
+        if(!IfPointInMap(x, y)) return;
+
+        if((y >= waterLevel) && (y > foundPoint.y))
         {
-            foundPoint.x = x;
-            foundPoint.y = y;
+            if(mapTmp[y][x] == c_space)
+            {
+                foundPoint.x = x;
+                foundPoint.y = y;
+            }
+        }
+        if(mapTmp[y][x] == c_water)
+        {
+            mapTmp[y][x] = '#';
+            FindWaterPath(x, y - 1, direction);
+            FindWaterPath(x, y + 1, direction);
+
+            FindWaterPath(x - 1, y, direction);
+            FindWaterPath(x + 1, y, direction);
         }
     }
-    if(mapTmp[y][x] == c_water)
+    else
     {
-        mapTmp[y][x] = '#';
-        FindWaterPath(x, y - 1);
-        FindWaterPath(x, y + 1);
-        FindWaterPath(x - 1, y);
-        FindWaterPath(x + 1, y);
+        if(!IfPointInMap(x, y)) return;
+
+        if((y >= waterLevel) && (y > foundPoint.y))
+        {
+            if(mapTmp[y][x] == c_space)
+            {
+                foundPoint.x = x;
+                foundPoint.y = y;
+            }
+        }
+        if(mapTmp[y][x] == c_water)
+        {
+            mapTmp[y][x] = '#';
+            FindWaterPath(x, y - 1, direction);
+            FindWaterPath(x, y + 1, direction);
+
+
+            FindWaterPath(x + 1, y, direction);
+            FindWaterPath(x - 1, y, direction);
+        }
     }
 }
 
 // water physics
-void MoveWater(int x, int y)
+void MoveWater(int x, int y, bool direction)
 {
     if(!IfPointInMap(x, y + 1)) return; // Checking point pos
     if(map[y + 1][x] == c_space)
@@ -186,7 +214,7 @@ void MoveWater(int x, int y)
         waterLevel = y + 1;
         foundPoint.y = -1;
         memcpy(mapTmp, map, sizeof(map));
-        FindWaterPath(x, y + 1);
+        FindWaterPath(x, y + 1, direction);
         if(foundPoint.y >= 0)
         {
             map[foundPoint.y][foundPoint.x] = c_water;
@@ -196,14 +224,14 @@ void MoveWater(int x, int y)
 }
 
 //general physics of motion
-void MoveSubstance()
+void MoveSubstance(bool water_direction)
 {
     for(int j = height - 1; j >= 0; j--)
     {
         for(int i = 0; i < width; i++)
         {
             if(map[j][i] == c_sand) MoveSand(i, j);
-            if(map[j][i] == c_water) MoveWater(i, j);
+            if(map[j][i] == c_water) MoveWater(i, j, water_direction);
         }
     }
 }
@@ -215,7 +243,9 @@ int main()
     cellSize = GetCellSize(hwnd);
     //Clearing map
     ClearMap();
-    
+
+    bool water_direction = true;
+
     // Main loop
     do
     {
@@ -223,8 +253,8 @@ int main()
         mousePos = GetMousePos(hwnd, cellSize);
         SelectSubstance();
         PutSubstance(mousePos);
-        
-        MoveSubstance();
+
+        MoveSubstance(water_direction);
 
         ShowMap(map);
         ShowInfo();
@@ -233,6 +263,8 @@ int main()
         {
             ClearMap();
         }
+
+        water_direction = !water_direction;
         //Timeout
         Sleep(50);
     }
@@ -240,3 +272,4 @@ int main()
 
     return 0;
 }
+
